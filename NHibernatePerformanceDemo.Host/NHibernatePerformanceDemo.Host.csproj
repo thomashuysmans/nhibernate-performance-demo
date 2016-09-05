@@ -68,6 +68,7 @@
     <Compile Include="Entities\ProductWithGuid.cs" />
     <Compile Include="Entities\ProductWithHiLo.cs" />
     <Compile Include="InsertSimulator.cs" />
+    <Compile Include="InsertSimulatorStateless.cs" />
     <Compile Include="Mapping\ProductMapping.cs" />
     <Compile Include="Mapping\ProductWithGuidMapping.cs" />
     <Compile Include="Mapping\ProductWithHiLoMapping.cs" />

@@ -1,26 +1,24 @@
 ﻿using NHibernate;
 using NHibernatePerformanceDemo.Host.Entities;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
+
 
 namespace NHibernatePerformanceDemo.Host
 {
-    public class InsertSimulator
+    public class InsertSimulatorStateless
     {
         private const int AmountOfInserts = 10000;
         private ISessionFactory _sessionFactory;
 
-        public InsertSimulator(ISessionFactory sessionFactory)
+        public InsertSimulatorStateless(ISessionFactory sessionFactory)
         {
             _sessionFactory = sessionFactory;
         }
 
         public void Simulate()
         {
-            var stopWatch = new System.Diagnostics.Stopwatch();
+            var stopWatch = new Stopwatch();
 
             InsertProductWithIdGeneratedByDatabase(_sessionFactory, stopWatch);
             stopWatch.Reset();
@@ -31,15 +29,55 @@ namespace NHibernatePerformanceDemo.Host
             InsertProductWithGuidId(_sessionFactory, stopWatch);
         }
 
-
-        private static void InsertProductWithGuidId(ISessionFactory sessionFactory, System.Diagnostics.Stopwatch stopWatch)
+        private void UpdateAProduct()
         {
+            using (var session = _sessionFactory.OpenSession())
+            using (var transaction = session.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+            {
+                var product = session.Get<Product>(1);
+                product.Name = "other name";
+                transaction.Commit();
+            }
+        }
 
+        private static void InsertProductWithHiLo(ISessionFactory sessionFactory, System.Diagnostics.Stopwatch stopWatch)
+        {
+            Console.WriteLine("Start executing insert product with HiLo");
+
+            stopWatch.Start();
+
+            using (var session = sessionFactory.OpenStatelessSession())
+            using (var transaction = session.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
+            {
+
+                for (var i = 0; i < AmountOfInserts; i++)
+                {
+                    var product = new ProductWithHiLo()
+                    {
+                        Name = "A very long productname",
+                        Description = "A very long description of a product with a very long name",
+                        Price = 22,
+                        Category = "Books"
+                    };
+                    session.Insert(product);
+                }
+
+                transaction.Commit();
+            }
+
+            stopWatch.Stop();
+            var result = stopWatch.ElapsedMilliseconds;
+            Console.WriteLine("Total time (in milliseconds) for executing query: " + result);
+        }
+
+
+        private static void InsertProductWithGuidId(ISessionFactory sessionFactory, Stopwatch stopWatch)
+        {
             Console.WriteLine("Start executing insert product with guid id");
 
             stopWatch.Start();
 
-            using (var session = sessionFactory.OpenSession())
+            using (var session = sessionFactory.OpenStatelessSession())
             using (var transaction = session.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
             {
 
@@ -53,7 +91,7 @@ namespace NHibernatePerformanceDemo.Host
                         Price = 22,
                         Category = "Books"
                     };
-                    session.Save(product);
+                    session.Insert(product);
                 }
 
                 transaction.Commit();
@@ -64,42 +102,12 @@ namespace NHibernatePerformanceDemo.Host
             Console.WriteLine("Total time (in milliseconds) for executing query: " + result);
         }
 
-        private static void InsertProductWithHiLo(ISessionFactory sessionFactory, System.Diagnostics.Stopwatch stopWatch)
-        {
-            Console.WriteLine("Start executing insert product with HiLo");
-
-            stopWatch.Start();
-
-            using (var session = sessionFactory.OpenSession())
-            using (var transaction = session.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
-            {
-
-                for (var i = 0; i < AmountOfInserts; i++)
-                {
-                    var product = new ProductWithHiLo()
-                    {
-                        Name = "A very long productname",
-                        Description = "A very long description of a product with a very long name",
-                        Price = 22,
-                        Category = "Books"
-                    };
-                    session.Save(product);
-                }
-
-                transaction.Commit();
-            }
-
-            stopWatch.Stop();
-            var result = stopWatch.ElapsedMilliseconds;
-            Console.WriteLine("Total time (in milliseconds) for executing query: " + result);
-        }
-
-        private static void InsertProductWithIdGeneratedByDatabase(ISessionFactory sessionFactory, System.Diagnostics.Stopwatch stopWatch)
+        private static void InsertProductWithIdGeneratedByDatabase(ISessionFactory sessionFactory, Stopwatch stopWatch)
         {
             Console.WriteLine("Start executing insert product with id generated by database.");
             stopWatch.Start();
 
-            using (var session = sessionFactory.OpenSession())
+            using (var session = sessionFactory.OpenStatelessSession())
             using (var transaction = session.BeginTransaction(System.Data.IsolationLevel.ReadCommitted))
             {
                 for (var i = 0; i < AmountOfInserts; i++)
@@ -112,7 +120,7 @@ namespace NHibernatePerformanceDemo.Host
                         Category = "Books"
                     };
 
-                    session.Save(product);
+                    session.Insert(product);
                 }
 
                 transaction.Commit();
@@ -123,6 +131,5 @@ namespace NHibernatePerformanceDemo.Host
             var result = stopWatch.ElapsedMilliseconds;
             Console.WriteLine("Total time (milliseconds) for executing query: " + result);
         }
-
     }
 }
